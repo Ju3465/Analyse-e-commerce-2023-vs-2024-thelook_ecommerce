@@ -1,0 +1,30 @@
+# Environnement virtuel
+venv/
+.env
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Dossiers de données
+data/
+
+# Logs et fichiers temporaires
+*.log
+*.tmp
+*.bak
+
+# IDEs et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Système
+.DS_Store
+Thumbs.db
