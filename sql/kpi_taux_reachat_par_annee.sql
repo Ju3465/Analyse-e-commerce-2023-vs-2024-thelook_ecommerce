@@ -15,7 +15,7 @@ FROM (
     ON o.order_id = oi.order_id
   JOIN `bigquery-public-data.thelook_ecommerce.products` p
     ON oi.product_id = p.id
-  WHERE o.status IN ('Complete', 'Shipped')
+  WHERE o.status = 'Complete'
     AND u.country = 'France'
     AND p.department = 'Women'
     AND DATE(o.created_at) BETWEEN '2023-01-01' AND '2024-12-31'
