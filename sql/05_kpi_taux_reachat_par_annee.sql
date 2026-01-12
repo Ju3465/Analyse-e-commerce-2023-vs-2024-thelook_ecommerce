@@ -21,7 +21,7 @@ FROM (
   WHERE           -- On délimite notre périmètre avec la clause WHERE. 
     u.country = 'France'          -- commandes passées en France
     AND p.department = 'Women'     -- produits du département "Femme"
-    AND o.status = 'Complete'       -- lignes de commandes "Complete"
+    AND o.status = 'Complete'       -- commandes "Complete"
     AND DATE(o.created_at) BETWEEN '2023-01-01' AND '2024-12-31'       -- lignes de commandes créées en 2023 et 2024
 )
 GROUP BY year
