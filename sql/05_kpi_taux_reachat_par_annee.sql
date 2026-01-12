@@ -30,12 +30,12 @@ ORDER BY year;
 
 -- Résultat attendu :
 
--- year | Taux de ré‑achat
+-- year | taux_reachat
 -- 2023 : 0.00 %
 -- 2024 : 3.39 %
 
 -- Résultat obtenu :
 
--- year | Taux de ré‑achat
+-- year | taux_reachat
 -- 2023 | 3.75 %
 -- 2024 | 2.53 %

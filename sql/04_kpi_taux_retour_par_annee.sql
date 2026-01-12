@@ -18,12 +18,12 @@ GROUP BY year;
 
 -- Résultat attendu :
 
--- year | Taux de retour
+-- year | taux_retour
 -- 2023 : 37.87 %
 -- 2024 : 30.42 %
 
 -- Résultat obtenu :
 
--- year | Taux de retour
+-- year | taux_retour
 -- 2023 | 25.30 €
 -- 2024 | 24.69 €
