@@ -1,4 +1,3 @@
-
 -- Calcul du Chiffre d’affaires (somme de sale_price pour les lignes de vente) annuel
 
 
@@ -16,3 +15,16 @@ WHERE           -- On délimite notre périmètre avec la clause WHERE.
   AND oi.status ='Complete'       -- lignes de commandes "Complete" 
   AND DATE(oi.created_at) BETWEEN '2023-01-01' AND '2024-12-31'       -- lignes de commandes créées en 2023 et 2024
 GROUP BY year;
+
+
+-- Résultat attendu :
+
+-- year | chiffre_affaires_total
+-- 2023 : 7806.32 €
+-- 2024 : 15716.28 €
+
+-- Résultat obtenu :
+
+-- year | chiffre_affaires_total
+-- 2023 | 7065.42 €
+-- 2024 | 14137.46 €

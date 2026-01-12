@@ -1,4 +1,3 @@
-
 -- Calcul du Taux de ré‑achat (part des clients ayant ≥ 2 commandes complètes sur une année)
 
 
@@ -27,3 +26,16 @@ FROM (
 )
 GROUP BY year
 ORDER BY year;
+
+
+-- Résultat attendu :
+
+-- year | Taux de ré‑achat
+-- 2023 : 0.00 %
+-- 2024 : 3.39 %
+
+-- Résultat obtenu :
+
+-- year | Taux de ré‑achat
+-- 2023 | 3.75 %
+-- 2024 | 2.53 %

@@ -1,3 +1,7 @@
+
+-- Re-confection du csv originel avec BigQuery
+
+
 SELECT
     oi.order_id, oi.id AS order_item_id, p.id AS product_id, oi.created_at AS item_created_at,
     oi.status AS item_status, oi.sale_price, p.cost, p.category, p.department, p.brand,

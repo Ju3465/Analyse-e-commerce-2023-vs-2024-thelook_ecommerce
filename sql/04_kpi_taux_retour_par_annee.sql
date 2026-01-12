@@ -1,4 +1,3 @@
-
 -- Calcul du Taux de retour (part des lignes au statut "Returned" parmi les lignes vendues : ventes + retours) annuel
 
 
@@ -15,3 +14,16 @@ WHERE           -- On délimite notre périmètre avec la clause WHERE.
   AND p.department = 'Women'     -- produits du département "Femme"  // pas de fitrage sur le statut "Complete" car nous avons besoin de "Returned"
   AND DATE(oi.created_at) BETWEEN '2023-01-01' AND '2024-12-31'       -- lignes de commandes créées en 2023 et 2024
 GROUP BY year;
+
+
+-- Résultat attendu :
+
+-- year | Taux de retour
+-- 2023 : 37.87 %
+-- 2024 : 30.42 %
+
+-- Résultat obtenu :
+
+-- year | Taux de retour
+-- 2023 | 25.30 €
+-- 2024 | 24.69 €
