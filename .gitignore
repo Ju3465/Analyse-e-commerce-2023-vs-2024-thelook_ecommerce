@@ -11,9 +11,6 @@ __pycache__/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Fichier CSV
-csv_BigQuery.csv
-
 # Logs et fichiers temporaires
 *.log
 *.tmp
