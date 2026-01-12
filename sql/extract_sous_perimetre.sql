@@ -1,20 +1,84 @@
--- Re-confection du csv originel avec BigQuery
-
+-- =====================================================================
+-- Reconstruction du fichier CSV source utilisé pour l’EDA Python
+-- et le tableau de bord Power BI
+--
+-- Source : bigquery-public-data.thelook_ecommerce
+-- Périmètre métier :
+--   • Pays : France
+--   • Département produit : Women
+--   • Période : 01/01/2023 → 31/12/2024
+--
+-- Objectif :
+--   Reconstituer un jeu de données traçable, stable et cohérent
+--   avec celui utilisé lors de l’analyse exploratoire (EDA).
+--
+-- Choix méthodologiques :
+--   • Conservation de tous les statuts de lignes de commande
+--     (Complete, Returned, Cancelled, Processing, Shipped)
+--     afin de permettre les calculs ultérieurs de CA, marge
+--     et taux de retour selon les règles métier.
+--   • Sélection d’un sous-ensemble minimal de colonnes,
+--     suffisant pour répondre aux objectifs analytiques.
+--   • Exclusion volontaire de colonnes non indispensables
+--     (ex : shipped_at, delivered_at, product_id).
+-- =====================================================================
 
 SELECT
-    oi.order_id, oi.id AS order_item_id, oi.created_at AS item_created_at,      -- remise des colonnes dans l'ordre du csv d'origine en enlevant les colonnes shipped_at, delivered_at et product_id qui ne sont pas indispensables
-    oi.status AS item_status, oi.sale_price, p.cost, p.category, p.department, p.brand,   -- on garde order_status pour le calcul du taux de ré-achat
-    p.name AS product_name, o.status AS order_status, o.created_at AS order_created_at,
-    u.id AS user_id, u.gender, u.country, u.state, u.city
-FROM `bigquery-public-data.thelook_ecommerce.order_items` oi       -- jointures à faire avec les tables orders, users, products
+    -- Identifiants de commande et de ligne
+    oi.order_id,
+    oi.id AS order_item_id,
+
+    -- Date de création de la ligne article
+    oi.created_at AS item_created_at,
+
+    -- Statut et montant de la ligne article
+    oi.status AS item_status,
+    oi.sale_price,
+
+    -- Informations produit
+    p.cost,
+    p.category,
+    p.department,
+    p.brand,
+    p.name AS product_name,
+
+    -- Informations commande (utiles notamment pour le taux de ré-achat)
+    o.status AS order_status,
+    o.created_at AS order_created_at,
+
+    -- Informations client et géographiques
+    u.id AS user_id,
+    u.gender,
+    u.country,
+    u.state,
+    u.city
+
+FROM `bigquery-public-data.thelook_ecommerce.order_items` oi
+
+-- Jointure avec la table des commandes
 INNER JOIN `bigquery-public-data.thelook_ecommerce.orders` o
-  ON oi.order_id = o.order_id
+    ON oi.order_id = o.order_id
+
+-- Jointure avec la table des utilisateurs (profil et géographie)
 INNER JOIN `bigquery-public-data.thelook_ecommerce.users` u
-  ON o.user_id = u.id
+    ON o.user_id = u.id
+
+-- Jointure avec le référentiel produits
 INNER JOIN `bigquery-public-data.thelook_ecommerce.products` p
-  ON oi.product_id = p.id
-WHERE           -- On délimite notre périmètre avec la clause WHERE. 
-  u.country = 'France'          -- commandes passées en France
-  AND p.department = 'Women'     -- produits du département "Femme"  // pas de fitrage sur le statut car nous les voulons tous
-  AND DATE(oi.created_at) BETWEEN '2023-01-01' AND '2024-12-31'       -- lignes de commandes créées en 2023 et 2024
-ORDER BY item_created_at, oi.order_id, order_item_id;
+    ON oi.product_id = p.id
+
+WHERE
+    -- Filtre géographique : commandes passées en France
+    u.country = 'France'
+
+    -- Filtre métier : produits du département "Women"
+    AND p.department = 'Women'
+
+    -- Filtre temporel basé sur la date de création de la ligne article
+    AND DATE(oi.created_at) BETWEEN '2023-01-01' AND '2024-12-31'
+
+-- Ordonnancement
+ORDER BY
+    item_created_at,
+    oi.order_id,
+    order_item_id;
