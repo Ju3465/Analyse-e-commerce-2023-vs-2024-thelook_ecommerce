@@ -21,6 +21,10 @@
 --     suffisant pour répondre aux objectifs analytiques.
 --   • Exclusion volontaire de colonnes non indispensables
 --     (ex : shipped_at, delivered_at, product_id).
+--   • Les filtres géographiques, temporels et métier sont 
+--     appliqués exclusivement en SQL afin de garantir la  
+--     reproductibilité des analyses et la cohérence entre 
+--     Python, SQL et Power BI.
 -- =====================================================================
 
 SELECT

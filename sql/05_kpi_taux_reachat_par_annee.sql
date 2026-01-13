@@ -12,34 +12,34 @@
 --   • Période : 01/01/2023 → 31/12/2024
 --
 -- Granularité :
---   • Agrégation annuelle (YEAR)
+--   • Client × Année (agrégation intermédiaire)
+--   • Agrégation finale annuelle (YEAR)
 --
 -- Objectif :
 --   • Mesurer la capacité de fidélisation client d’une année sur l’autre
---   • Comparer les résultats SQL avec ceux obtenus lors de l’EDA Python
+--   • Obtenir un indicateur robuste, aligné avec l’EDA Python
+--   • Éviter les biais liés aux jointures 1-N (order_items)
 -- =====================================================================
 
-SELECT
-    year,
+WITH orders_per_user_year AS (
 
-    -- Moyenne des indicateurs de ré-achat (1 si client ≥ 2 commandes, 0 sinon)
-    AVG(CAST(is_rebuyer AS INT64)) * 100 AS taux_reachat
+    -- -----------------------------------------------------------------
+    -- Étape 1 : Reconstruction du périmètre de commandes valides
+    -- -----------------------------------------------------------------
+    --   • Une ligne = un client sur une année donnée
+    --   • Calcul du nombre de commandes distinctes par client et par année
+    --   • Application de l’ensemble des filtres métier et géographiques
+    -- -----------------------------------------------------------------
 
-FROM (
-    SELECT DISTINCT
+    SELECT
         -- Année de la commande
         EXTRACT(YEAR FROM o.created_at) AS year,
 
         -- Identifiant client
         o.user_id,
 
-        -- Indicateur de ré-achat :
-        -- vrai si le client a passé au moins deux commandes complètes
-        -- sur la même année
-        COUNT(DISTINCT o.order_id)
-            OVER (
-                PARTITION BY EXTRACT(YEAR FROM o.created_at), o.user_id
-            ) >= 2 AS is_rebuyer
+        -- Nombre de commandes distinctes sur l’année
+        COUNT(DISTINCT o.order_id) AS nb_orders
 
     FROM `bigquery-public-data.thelook_ecommerce.orders` o
 
@@ -67,11 +67,33 @@ FROM (
 
         -- Filtre temporel basé sur la date de création de la commande
         AND DATE(o.created_at) BETWEEN '2023-01-01' AND '2024-12-31'
+
+    GROUP BY
+        year,
+        o.user_id
 )
+
+-- ---------------------------------------------------------------------
+-- Étape 2 : Calcul du taux de ré-achat annuel
+-- ---------------------------------------------------------------------
+--   • Transformation du nombre de commandes en indicateur binaire :
+--       - 1 si le client a passé au moins 2 commandes sur l’année
+--       - 0 sinon
+--   • Calcul de la moyenne annuelle de cet indicateur
+-- ---------------------------------------------------------------------
+
+SELECT
+    year,
+
+    -- Moyenne des indicateurs de ré-achat (en pourcentage)
+    AVG(CAST(nb_orders >= 2 AS INT64)) * 100 AS taux_reachat
+
+FROM orders_per_user_year
 
 -- Agrégation annuelle
 GROUP BY year
 ORDER BY year;
+
 
 -- =====================================================================
 -- Comparaison des résultats
