@@ -1,208 +1,157 @@
-Analyse de la performance e-commerce — TheLook Europe
+# Analyse de la performance e-commerce — TheLook Europe
 
 France | Women | 2023–2024
 
-1. Contexte et objectifs du projet
+---
+
+## 1. Contexte et objectifs du projet
 
 Vous endossez le rôle de Data Analyst au sein de TheLook Europe. La direction e-commerce demande d’analyser la performance de l’activité sur un périmètre précis et de comparer l’année 2023 à 2024.
 
 Les objectifs du projet sont :
 
-Contrôler la qualité des données (types, valeurs manquantes, doublons, cohérence temporelle).
+- Contrôler la qualité des données (types, valeurs manquantes, doublons, cohérence temporelle).
+- Réaliser une analyse exploratoire (EDA) en Python afin de comprendre les mécanismes de performance.
+- Calculer les KPI en Python (chiffre d’affaires, marge, panier moyen, taux de retour, taux de ré-achat).
+- Valider les KPI en SQL sur BigQuery (source de vérité).
+- Construire un dashboard Power BI clair et décisionnel racontant l’évolution 2023 vs 2024.
 
-Réaliser une analyse exploratoire (EDA) en Python afin de comprendre les mécanismes de performance.
+---
 
-Calculer les KPI en Python (chiffre d’affaires, marge, panier moyen, taux de retour, taux de ré-achat).
+## 2. Description du sous-périmètre
 
-Valider les KPI en SQL sur BigQuery (source de vérité).
+### Périmètre métier
 
-Construire un dashboard Power BI clair et décisionnel racontant l’évolution 2023 vs 2024.
+- Pays : France  
+- Département produit : Women  
+- Période : du 01/01/2023 au 31/12/2024  
 
-2. Description du sous-périmètre
-Périmètre métier
+### Source de vérité
 
-Pays : France
+- Dataset BigQuery : bigquery-public-data.thelook_ecommerce
 
-Département produit : Women
+### Tables mobilisées
 
-Période : du 01/01/2023 au 31/12/2024
+- users : profil client et géographie  
+- orders : commandes  
+- order_items : lignes de commande  
+- products : référentiel produit (coût, marque, catégorie, département)
 
-Source de vérité
+### Clés de jointure
 
-Dataset BigQuery : bigquery-public-data.thelook_ecommerce
+- users.id = orders.user_id  
+- orders.order_id = order_items.order_id  
+- products.id = order_items.product_id  
 
-Tables mobilisées
+---
 
-users : profil client et géographie
+## 3. Étape 1 — Analyse exploratoire en Python (EDA)
 
-orders : commandes
+Cette étape est réalisée exclusivement en Python à partir du fichier CSV reconstruit.
 
-order_items : lignes de commande
+Les travaux réalisés sont :
 
-products : référentiel produit (coût, marque, catégorie, département)
+- Création d’un dictionnaire de données (définition, type, exemple).
+- Vérification de la qualité des données :
+  - doublons complets et doublons logiques,
+  - valeurs manquantes,
+  - cohérence des identifiants,
+  - cohérence des bornes temporelles.
+- Explorations descriptives :
+  - distributions des prix de vente et des coûts,
+  - contribution au chiffre d’affaires par marque, catégorie et ville,
+  - analyse de la saisonnalité mensuelle (comparaison 2023 vs 2024).
+- Calcul des KPI en Python selon les règles métier définies.
 
-Clés de jointure
+---
 
-users.id = orders.user_id
+## 4. Étape 2 — SQL BigQuery (source de vérité)
 
-orders.order_id = order_items.order_id
+### 4.1 Calcul des KPI en SQL
 
-products.id = order_items.product_id
+Chaque KPI est recalculé en SQL en respectant strictement le sous-périmètre métier :
 
-Filtres appliqués
+- Les ventes correspondent aux lignes au statut Complete.
+- Les retours correspondent aux lignes au statut Returned.
+- Les agrégations sont réalisées à une granularité annuelle et mensuelle.
 
-users.country = 'France'
+Les résultats obtenus en SQL sont comparés à ceux calculés en Python.  
+Les écarts résiduels sont expliqués par des différences de jointures, de filtres temporels ou de stabilité d’extraction.
 
-products.department = 'Women'
+### 4.2 Reconstruction du fichier CSV (Étape 2.2)
 
-DATE(order_items.created_at) entre '2023-01-01' et '2024-12-31'
+Une requête SQL dédiée permet de reconstruire le fichier CSV utilisé en Python et Power BI.
 
-3. Étape 1 — Analyse exploratoire en Python (EDA)
+Les choix effectués sont les suivants :
 
-Cette étape est réalisée exclusivement en Python à partir du CSV fourni ou reconstruit.
+- Sélection des colonnes strictement nécessaires à l’analyse.
+- Application explicite des filtres du sous-périmètre.
+- Ordonnancement des données pour garantir la stabilité de l’extraction :
 
-Travaux réalisés :
+ORDER BY created_at, order_id, order_item_id
 
-Mini dictionnaire de données (définition, type, exemple).
+Le fichier CSV est ainsi entièrement traçable et reproductible à partir de la requête SQL.
 
-Contrôles de qualité :
+---
 
-doublons complets et doublons logiques,
-
-valeurs manquantes,
-
-cohérence des identifiants,
-
-cohérence des bornes temporelles.
-
-Explorations descriptives :
-
-distributions des prix de vente et des coûts,
-
-contribution au CA par marque, catégorie et ville,
-
-saisonnalité mensuelle (comparaison 2023 vs 2024).
-
-Calcul des KPI Python selon les règles métier.
-
-4. Étape 2 — SQL BigQuery (source de vérité)
-4.1 Calcul des KPI en SQL
-
-Chaque KPI est recalculé en SQL en respectant strictement le sous-périmètre.
-
-Ventes : lignes au statut Complete
-
-Retours : lignes au statut Returned
-
-Granularité : annuelle et mensuelle
-
-Les résultats SQL sont comparés aux résultats Python et les écarts résiduels sont expliqués.
-
-4.2 Reconstruction du fichier CSV (Étape 2.2)
-
-Une requête SQL dédiée permet de reconstruire le CSV utilisé en Python et Power BI.
-
-Principes :
-
-Colonnes minimales nécessaires à l’analyse.
-
-Filtres explicites du périmètre métier.
-
-Tri pour assurer la stabilité de l’extraction :
-ORDER BY created_at, order_id, order_item_id.
-
-Traçabilité : le CSV est reproductible à l’identique depuis BigQuery à partir de la requête documentée.
-
-5. Étape 3 — Dashboard Power BI
+## 5. Étape 3 — Dashboard Power BI
 
 Le dashboard est construit à partir du CSV reconstruit.
 
-Principes de design
+Les principes retenus sont :
 
-Lecture claire et synthétique.
+- Une lecture claire et synthétique.
+- Une séparation des usages :
+  - Page 1 : vision macro (KPI, tendances, contributions).
+  - Page 2 : leviers de performance et zones de vigilance.
+- Des interactions via des slicers (année).
+- L’absence de texte long dans le dashboard, le storytelling étant porté par la soutenance orale.
 
-Séparation entre :
+---
 
-Page 1 — Vision macro (KPI, tendances, contributions).
+## 6. Instructions d’installation et d’exécution
 
-Page 2 — Leviers et risques (géographie, retours vs marge, panier moyen).
+### Prérequis
 
-Interactions utiles (slicers).
+- Python ≥ 3.10  
+- Accès à Google BigQuery (GCP)  
+- Power BI Desktop  
 
-Pas de surcharge textuelle dans les visuels.
+### Installation des dépendances Python
 
-6. Installation et exécution
-Prérequis
+Les dépendances Python sont listées dans le fichier requirements.txt et doivent être installées avant l’exécution des notebooks.
 
-Python ≥ 3.10
+---
 
-Accès à BigQuery (GCP)
+## 7. Cheminement pour reproduire les résultats
 
-Power BI Desktop
+1. Exécuter la requête SQL de reconstruction du fichier CSV sur BigQuery.  
+2. Exporter le résultat au format CSV.  
+3. Lancer le notebook Python d’EDA et exécuter les cellules dans l’ordre.  
+4. Exécuter les requêtes SQL de calcul des KPI.  
+5. Importer le CSV dans Power BI et construire le dashboard.
 
-Installation des dépendances Python
-pip install -r requirements.txt
+---
 
+## 8. Principaux enseignements
 
-Dépendances principales :
+- La croissance observée en 2024 est réelle mais hétérogène selon les mois.  
+- Le chiffre d’affaires est fortement concentré sur un nombre limité de marques.  
+- Certaines catégories génèrent une marge élevée mais présentent un taux de retour important.  
+- Le panier moyen est davantage tiré par le mix produit et le niveau de prix que par le volume.
 
-pandas, numpy
+---
 
-matplotlib, seaborn
+## 9. Limites et perspectives
 
-jupyter, ipykernel
+### Limites
 
-7. Cheminement pour reproduire les résultats
+- Données exclusivement transactionnelles.  
+- Absence d’informations sur les motifs de retour.  
+- Absence de coûts marketing et logistiques.
 
-BigQuery
+### Perspectives
 
-Exécuter la requête de reconstruction du CSV (Étape 2.2).
-
-Exporter le résultat en CSV.
-
-Python
-
-Ouvrir le notebook d’EDA.
-
-Exécuter les cellules dans l’ordre : qualité → explorations → KPI.
-
-SQL
-
-Exécuter les requêtes KPI (Étape 2.1).
-
-Comparer SQL vs Python.
-
-Power BI
-
-Importer le CSV.
-
-Créer les mesures DAX.
-
-Construire les deux pages du dashboard.
-
-8. Principaux enseignements
-
-La croissance 2024 est réelle mais hétérogène selon les mois.
-
-Le chiffre d’affaires est fortement concentré sur un nombre limité de marques et de catégories.
-
-Certaines catégories structurent la marge, mais présentent un taux de retour élevé.
-
-Le panier moyen est davantage tiré par le prix/mix produit que par le volume.
-
-9. Limites et perspectives
-Limites
-
-Données uniquement transactionnelles.
-
-Absence des motifs de retour.
-
-Pas de coûts marketing ou logistiques.
-
-Perspectives
-
-Analyses par cohorte client.
-
-Étude fine des retours par produit/marque.
-
-Enrichissement avec données marketing et logistiques.
+- Analyses par cohorte de clients.  
+- Étude approfondie des retours par produit ou par marque.  
+- Enrichissement avec des données marketing et opérationnelles.
