@@ -2,9 +2,12 @@
 -- Calcul du taux de ré-achat annuel
 --
 -- Définition métier :
---   • Le taux de ré-achat correspond à la part des clients ayant passé
---     au moins deux commandes complètes sur une même année.
---   • Une commande est considérée comme valide si son statut est "Complete".
+--   • Un client est "ré-acheteur" sur une année s’il a passé au moins
+--     deux commandes valides sur cette même année.
+--   • Une commande est considérée comme valide si elle contient au moins
+--     une ligne de vente au statut "Complete" (order_items.status).
+--   • L’année de référence est basée sur la date de création des lignes
+--     (order_items.created_at), conformément au périmètre.
 --
 -- Périmètre d’analyse :
 --   • Pays : France
@@ -29,16 +32,19 @@ WITH orders_per_user_year AS (
     --   • Une ligne = un client sur une année donnée
     --   • Calcul du nombre de commandes distinctes par client et par année
     --   • Application de l’ensemble des filtres métier et géographiques
+    --   • Une commande est dite "valide" si elle contient au moins une ligne
+    --     item_status = "Complete" sur le périmètre France × Women
+    --   • L’année est définie par la date de création des lignes (oi.created_at)
     -- -----------------------------------------------------------------
 
     SELECT
-        -- Année de la commande
-        EXTRACT(YEAR FROM o.created_at) AS year,
+        -- Année de référence (basée sur la date de création des lignes)
+        EXTRACT(YEAR FROM oi.created_at) AS year,
 
         -- Identifiant client
         o.user_id,
 
-        -- Nombre de commandes distinctes sur l’année
+        -- Nombre de commandes distinctes "valides" sur l’année
         COUNT(DISTINCT o.order_id) AS nb_orders
 
     FROM `bigquery-public-data.thelook_ecommerce.orders` o
@@ -47,7 +53,8 @@ WITH orders_per_user_year AS (
     INNER JOIN `bigquery-public-data.thelook_ecommerce.users` u
         ON o.user_id = u.id
 
-    -- Jointure avec order_items pour restreindre le périmètre produit
+    -- Jointure avec order_items pour identifier les commandes contenant
+    -- au moins une ligne de vente complète
     INNER JOIN `bigquery-public-data.thelook_ecommerce.order_items` oi
         ON o.order_id = oi.order_id
 
@@ -62,11 +69,11 @@ WITH orders_per_user_year AS (
         -- Filtre métier : produits du département "Women"
         AND p.department = 'Women'
 
-        -- Filtre statut : uniquement les commandes finalisées
-        AND o.status = 'Complete'
+        -- Filtre statut : uniquement les lignes de vente finalisées
+        AND oi.status = 'Complete'
 
-        -- Filtre temporel basé sur la date de création de la commande
-        AND DATE(o.created_at) BETWEEN '2023-01-01' AND '2024-12-31'
+        -- Filtre temporel basé sur la date de création de la ligne
+        AND DATE(oi.created_at) BETWEEN '2023-01-01' AND '2024-12-31'
 
     GROUP BY
         year,
@@ -106,7 +113,7 @@ ORDER BY year;
 -- Résultats obtenus (BigQuery SQL) :
 -- year | taux_reachat
 -- 2023 | 3.75 %
--- 2024 | 2.53 %
+-- 2024 | 2.52 %
 --
 -- Remarque :
 --   • Les écarts observés entre Python et SQL proviennent principalement
