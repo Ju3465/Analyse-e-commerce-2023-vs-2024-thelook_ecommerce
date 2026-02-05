@@ -1,108 +1,153 @@
 # Projet de fin de formation — DATAGONG  
-## Analyse e-commerce 2023 vs 2024 — thelook_ecommerce (France × Women)
+## Analyse e-commerce 2023 vs 2024 — thelook_ecommerce  
+**Périmètre : France × Women**
 
-### 1) Contexte & périmètre
-Ce projet analyse la performance e-commerce **TheLook Europe** sur le périmètre suivant :
+---
+
+## 1. Contexte & objectifs
+
+Ce projet s’inscrit dans le cadre du projet de fin de formation **Data Analyst – DATAGONG**.  
+Il consiste à analyser la performance e-commerce de **TheLook Europe** et à comparer les résultats des années **2023** et **2024** sur un périmètre métier précis.
+
+### Objectifs principaux
+- Analyser la performance commerciale (chiffre d’affaires, marge, retours, comportement client)
+- Comparer les dynamiques **2023 vs 2024**
+- Formaliser des **KPI métier robustes**
+- Alimenter un **dashboard Power BI** destiné à une direction e-commerce
+
+---
+
+## 2. Périmètre d’étude
 
 - **Pays** : France  
-- **Département** : Women  
+- **Département produit** : Women  
 - **Période** : du **01/01/2023** au **31/12/2024**  
-- **Objectif** : comparer **2023 vs 2024** via une **EDA** (analyse exploratoire) et le calcul de **KPI métier**.
-
-L’analyse est réalisée principalement en **Python** (EDA + KPI) et est destinée à alimenter un **dashboard Power BI**.
-
----
-
-### 2) Objectifs de l’EDA
-L’analyse exploratoire vise à :
-
-- comprendre la structure des ventes et des retours sur 2023–2024,
-- identifier les dynamiques temporelles, produits et géographiques,
-- repérer d’éventuelles ruptures/anomalies avant formalisation définitive des KPI.
+- **Source de données** :  
+  - CSV pédagogique (EDA exploratoire)
+  - Export reconstruit depuis **BigQuery** (*bigquery-public-data.thelook_ecommerce*) — **source de vérité**
 
 ---
 
-### 3) Données & grain d’analyse
-#### Grain
-Le dataset est au **grain ligne de commande (article)** :  
-chaque ligne correspond à un article acheté associé à :
+## 3. Données & grain d’analyse
+
+### Grain
+Le dataset est au **grain ligne de commande (article)**.  
+Chaque ligne correspond à un article acheté, associé à :
 - une commande (`order_id`)
 - un client (`user_id`)
 - un produit (`product_id`)
 
-#### Dates de référence
-Deux dates coexistent :
-- `order_created_at` : création de la commande
-- `item_created_at` : création de la ligne (article)
+Ce grain est conservé tout au long de l’EDA et des calculs de KPI.
 
-✅ Pour respecter le périmètre temporel **au grain article**, toutes les analyses temporelles et le filtrage 2023–2024 sont basés sur **`item_created_at`**.
+### Dates de référence
+Deux dates coexistent dans les données :
+- `order_created_at` : date de création de la commande
+- `item_created_at` : date de création de la ligne (article)
 
----
-
-### 4) Contrôles qualité effectués
-Les contrôles suivants ont été réalisés :
-
-- **Doublons** : aucun doublon intégral ; `order_item_id` est unique.
-- **Valeurs manquantes** :
-  - `shipped_at` et `delivered_at` : valeurs manquantes attendues (commandes non expédiées/livrées) → conservées en `NaT`
-  - `brand` : 2 valeurs manquantes imputées avec la modalité `"missing"` (0,12% du dataset)
-- **Cohérence temporelle** :
-  - `order_created_at <= shipped_at`
-  - `shipped_at <= delivered_at`
-  → aucune incohérence détectée
-- **Contrôles métier sur les prix** :
-  - `sale_price > 0`
-  - `cost >= 0`
-  - `sale_price >= cost`
-  → aucune anomalie détectée
-
-✅ Les données sont jugées exploitables pour l’EDA et le calcul des KPI.
+👉 Afin de respecter le périmètre temporel **au grain article**, **toutes les analyses temporelles et le filtrage 2023–2024 sont basés sur `item_created_at`**.
 
 ---
 
-### 5) Convention de calcul “CA réalisé”
-Dans ce projet, le **chiffre d’affaires réalisé** est défini comme :
+## 4. Contrôles de qualité des données
 
-> **Somme des `sale_price` des lignes au statut `Complete`**
+Les contrôles suivants ont été réalisés avant toute analyse :
 
-Les statuts `Processing`, `Shipped`, `Cancelled` correspondent à des étapes intermédiaires / annulées et sont exclus des calculs de performance.
+### Doublons
+- Aucun doublon intégral détecté
+- `order_item_id` est unique → fiabilité des agrégations
+
+### Valeurs manquantes
+- `shipped_at`, `delivered_at` : valeurs manquantes attendues (cycle logistique incomplet) → conservées en `NaT`
+- `brand` : 2 valeurs manquantes (0,12 %) imputées avec la modalité `"missing"`
+
+### Cohérence temporelle
+- `order_created_at ≤ shipped_at`
+- `shipped_at ≤ delivered_at`
+→ aucune incohérence détectée
+
+### Contrôles métier sur les prix
+- `sale_price > 0`
+- `cost ≥ 0`
+- `sale_price ≥ cost`
+→ aucune anomalie détectée
+
+**Conclusion** : les données sont jugées exploitables pour l’EDA et le calcul des KPI.
 
 ---
 
-### 6) Analyses réalisées (EDA)
-Les explorations incluent notamment :
+## 5. Conventions métier retenues
 
-- distributions des prix de vente et des coûts (asymétrie à droite, présence de “premium”)
-- répartition des statuts de lignes (`item_status`)
-- contribution au CA réalisé :
-  - **Top marques** (forte fragmentation du portefeuille)
-  - **Top catégories** (Outerwear & Coats, Intimates, Jeans…)
-  - **Top villes** (forte longue traîne géographique)
-  - **saisonnalité mensuelle** (pics sur plusieurs mois + fin d’année)
-- comparaison mensuelle du CA réalisé **2023 vs 2024** (hausse marquée en 2024)
+### Chiffre d’affaires réalisé
+Conformément aux consignes du projet :
+
+> **Le chiffre d’affaires réalisé correspond à la somme des `sale_price` des lignes au statut `Complete`.**
+
+Les statuts `Processing`, `Shipped` et `Cancelled` correspondent à des ventes non finalisées ou annulées et sont exclus des calculs de performance.
+
+Cette convention est appliquée de manière homogène sur l’ensemble du projet (EDA, KPI Python, SQL BigQuery, Power BI).
 
 ---
 
-### 7) KPI calculés (Python)
-Les KPI sont calculés **sur les ventes réalisées** (`Complete`) :
+## 6. Analyse exploratoire (EDA Python)
+
+Les analyses exploratoires portent exclusivement sur le périmètre défini et incluent notamment :
+
+- **Analyse des distributions** :
+  - prix de vente et coûts (asymétrie à droite, longue traîne, produits premium)
+- **Analyse des statuts de lignes** (`item_status`)
+- **Contributions au chiffre d’affaires réalisé** :
+  - par marque (forte fragmentation du portefeuille)
+  - par catégorie (hiérarchisation claire des familles de produits)
+  - par ville (longue traîne géographique)
+- **Analyse de la saisonnalité mensuelle**
+- **Analyse de la marge** :
+  - marges unitaires
+  - contribution à la marge par catégorie
+  - taux de marge par catégorie
+- **Comparaison temporelle 2023 vs 2024** :
+  - évolution mensuelle du CA
+  - mise en évidence d’une croissance principalement portée par le volume
+
+L’EDA permet d’identifier les grands mécanismes de performance avant formalisation des KPI.
+
+---
+
+## 7. KPI calculés en Python
+
+Les KPI sont calculés sur les **ventes réalisées** (`item_status = Complete`) :
 
 - **Chiffre d’affaires réalisé**
 - **Marge brute** : Σ(`sale_price` − `cost`)
 - **Taux de marge brute** : Marge brute / CA réalisé
-- **Panier moyen** : CA réalisé / nombre de commandes distinctes génératrices de revenu  
-  (une commande est comptée si elle contient ≥ 1 ligne `Complete`)
-- **Taux de retour** : proportion de lignes `Returned` parmi (`Returned` + `Complete`)
-- **Taux de ré-achat** : part des clients ayant ≥ 2 commandes génératrices de revenu sur l’année
+- **Panier moyen** :
+  - CA réalisé / nombre de commandes distinctes génératrices de revenu
+  - une commande est comptabilisée dès lors qu’elle contient ≥ 1 ligne `Complete`
+- **Taux de retour** :
+  - proportion de lignes `Returned` parmi (`Returned` + `Complete`)
+  - calcul au grain ligne de commande
+- **Taux de ré-achat** :
+  - part des clients ayant ≥ 2 commandes génératrices de revenu sur une même année
 
 ---
 
-### 8) Particularité : KPI recalculés depuis BigQuery (source de vérité)
+## 8. Source de vérité & recalcul BigQuery
+
 Des écarts ont été observés entre :
-- les KPI calculés sur le **CSV fourni par l’équipe pédagogique**
-- et les KPI recalculés depuis un **export reconstruit depuis BigQuery**
+- les KPI calculés à partir du **CSV pédagogique**
+- et ceux recalculés à partir d’un **export reconstruit depuis BigQuery**
 
-Ces différences s’expliquent par de légères variations de périmètre effectif (logique de jointures, filtres, stabilité de l’extraction, etc.).
+Ces écarts s’expliquent par des différences de périmètre effectif (jointures, filtres temporels, stabilité de l’extraction).
 
-✅ Les KPI calculés à partir de l’export BigQuery sont retenus comme **référence** pour la suite du projet et l’alimentation du dashboard Power BI.
+👉 Les KPI **recalculés depuis BigQuery** sont retenus comme **référence finale** :
+- alignement avec les requêtes SQL
+- cohérence avec le dashboard Power BI
+- robustesse méthodologique
 
 ---
+
+## 10. Conclusion
+
+L’analyse met en évidence une **croissance marquée entre 2023 et 2024**, principalement portée par une augmentation du **volume de commandes finalisées**, tandis que le panier moyen évolue faiblement.  
+Elle souligne également l’importance du **mix produit**, des **retours** et de la **marge** dans le pilotage de la performance e-commerce.
+
+Les règles métier ont été sécurisées via une vérification croisée Python / SQL BigQuery, et les KPI issus de BigQuery constituent la base du reporting Power BI.
