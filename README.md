@@ -1,29 +1,37 @@
 # Projet de fin de formation — DATAGONG  
-## Analyse e-commerce 2023 vs 2024 — thelook_ecommerce  
-**Périmètre : France × Women**
+## Analyse e-commerce 2023 vs 2024 — TheLook (France × Women)
 
 ---
 
 ## 1. Contexte du projet
 
-Ce projet s’inscrit dans le cadre du **projet de fin de formation Data Analyst – DATAGONG**.  
-Il vise à analyser la performance e-commerce de **TheLook Europe** et à comparer les résultats des années **2023** et **2024** sur un périmètre métier défini.
+Ce projet s’inscrit dans le cadre de la spécialisation **Data Analyst – DATAGONG**.
+
+La direction e-commerce de **TheLook Europe** souhaite analyser la performance de l’activité sur un périmètre précis et comparer les années **2023** et **2024**.
+
+L’objectif est de :
+- comprendre les dynamiques de **chiffre d’affaires**,
+- analyser la **marge** et les **retours**,
+- étudier le **comportement client**,
+- restituer les enseignements via un **dashboard Power BI orienté décision**.
 
 Le projet couvre l’ensemble de la chaîne analytique :
-- exploration et contrôle des données,
-- formalisation d’indicateurs métier,
-- validation des résultats via SQL (BigQuery),
-- restitution des enseignements à l’aide d’un dashboard Power BI.
+- **Exploration** & contrôle qualité des données (Python)
+- **Calcul** formalisé des KPI (Python)
+- **Validation SQL** sur BigQuery (source de vérité)
+- **Construction** d’un dashboard décisionnel (Power BI)
 
 ---
 
-## 2. Objectifs
+## 2. Objectifs analytiques
 
-Les objectifs principaux sont les suivants :
-- Comprendre les dynamiques de performance e-commerce entre **2023 et 2024**
-- Analyser le **chiffre d’affaires**, la **marge**, les **retours** et le **comportement client**
-- Construire des **KPI robustes et traçables**
-- Alimenter un **tableau de bord Power BI** destiné à une direction e-commerce
+Les objectifs sont :
+
+1. **Comparer** la performance **2023 vs 2024**
+2. **Identifier** les leviers de croissance
+3. **Analyser** l’impact des retours sur la rentabilité
+4. **Évaluer** la fidélisation client (ré-achat intra-annuel)
+5. Construire des KPI **robustes**, **traçables** et **reproductibles**
 
 ---
 
@@ -31,149 +39,240 @@ Les objectifs principaux sont les suivants :
 
 - **Pays** : France  
 - **Département produit** : Women  
-- **Période** : du **01/01/2023** au **31/12/2024**
+- **Période** : du **01/01/2023** au **31/12/2024**  
+- **Grain temporel appliqué** : `item_created_at`
 
 ### Sources de données
-- **CSV pédagogique** fourni par l’équipe DATAGONG  
-  → utilisé exclusivement pour l’**analyse exploratoire (EDA)**
-- **Export reconstruit depuis BigQuery**  
-  (*bigquery-public-data.thelook_ecommerce*)  
-  → considéré comme la **source de vérité** pour les KPI et le reporting
+
+Deux jeux de données ont été utilisés :
+
+1. **CSV pédagogique fourni par DATAGONG**  
+   → utilisé exclusivement pour l’**analyse exploratoire (EDA)**
+
+2. **Export reconstruit depuis BigQuery**  
+   Dataset : `bigquery-public-data.thelook_ecommerce`  
+   → considéré comme **source de vérité** pour les **KPI finaux** et le reporting **Power BI**
+
+> Les KPI retenus dans le reporting final proviennent de l’export **BigQuery**.
 
 ---
 
-## 4. Données & grain d’analyse
+## 4. Modèle de données & grain d’analyse
 
-### Grain du dataset
-Le dataset est au **grain ligne de commande (article)**.  
-Chaque ligne correspond à un article acheté, associé à :
-- une commande (`order_id`),
-- un client (`user_id`),
-- un produit (`product_id`).
+### Grain
 
-Ce grain est conservé tout au long du projet (EDA, KPI, SQL, Power BI).
+Le dataset est au **grain ligne de commande (article)**.
+
+Chaque ligne correspond à :
+- un article acheté,
+- associé à une commande (`order_id`),
+- associé à un client (`user_id`),
+- associé à un produit (`product_id`).
+
+Ce grain est conservé :
+- en **EDA**,
+- en **SQL**,
+- en **Power BI**.
 
 ### Dates de référence
+
 Deux dates coexistent :
 - `order_created_at` : date de création de la commande,
 - `item_created_at` : date de création de la ligne (article).
 
-👉 Afin d’appliquer rigoureusement le périmètre temporel **au grain article**,  
-**toutes les analyses temporelles et les filtres 2023–2024 sont basés sur `item_created_at`.**
+Afin d’appliquer rigoureusement le périmètre au **grain article**,  
+toutes les analyses temporelles 2023–2024 sont basées sur :
+
+> **`item_created_at`**
 
 ---
 
 ## 5. Contrôles de qualité des données
 
-Avant toute analyse, des contrôles systématiques ont été réalisés :
+Les contrôles suivants ont été réalisés :
 
 ### Doublons
-- Aucun doublon intégral détecté
-- `order_item_id` est unique  
-→ fiabilité des agrégations au grain ligne
+- Aucun doublon intégral
+- `order_item_id` **unique**  
+  → fiabilité des agrégations
 
 ### Valeurs manquantes
-- `shipped_at`, `delivered_at` : valeurs manquantes attendues (cycle logistique incomplet)  
-  → conservées en `NaT`
-- `brand` : 2 valeurs manquantes (≈ 0,12 %)  
-  → imputées avec la modalité `"missing"`
+- `shipped_at` et `delivered_at` : manquants **attendus** (cycle logistique incomplet)  
+  → conservés en `NaT`
+- `brand` : 2 valeurs manquantes imputées en **"missing"**
+
+### Cohérence métier
+- `sale_price > 0`
+- `cost ≥ 0`
+- `sale_price ≥ cost`
 
 ### Cohérence temporelle
 - `order_created_at ≤ shipped_at`
-- `shipped_at ≤ delivered_at`  
-→ aucune incohérence détectée
+- `shipped_at ≤ delivered_at`
 
-### Contrôles métier sur les prix
-- `sale_price > 0`
-- `cost ≥ 0`
-- `sale_price ≥ cost`  
-→ aucune anomalie détectée
-
-**Conclusion** : les données sont jugées exploitables pour l’analyse exploratoire et le calcul des indicateurs.
+**Conclusion** : les données sont **exploitables** et **robustes** pour l’analyse.
 
 ---
 
 ## 6. Conventions métier
 
-### Chiffre d’affaires réalisé
-Conformément aux consignes du projet :
+### Chiffre d’affaires réalisé (CA)
 
-> **Le chiffre d’affaires réalisé correspond à la somme des `sale_price` des lignes au statut `Complete`.**
+Conformément aux consignes projet :
 
-Les statuts `Processing`, `Shipped` et `Cancelled` correspondent à des ventes non finalisées ou annulées et sont exclus des calculs de performance.
+> **CA réalisé = somme des `sale_price` des lignes au statut `Complete`.**
 
-Cette convention est appliquée de manière homogène :
-- dans l’EDA Python,
-- dans les KPI Python,
-- dans les requêtes SQL BigQuery,
-- dans le dashboard Power BI.
+Les statuts `Processing`, `Shipped`, `Cancelled` sont exclus des KPI de performance.
+
+### Marge brute
+
+> **Marge brute = somme (`sale_price − cost`) sur les lignes `Complete`.**
+
+### Panier moyen (AOV)
+
+> **Panier moyen = CA réalisé / nombre de commandes génératrices de revenu.**
+
+Une commande est comptabilisée si elle contient **au moins une** ligne `Complete`.
+
+### Taux de retour
+
+> **Taux de retour = Returned / (Returned + Complete)**
+
+Calcul au **grain ligne article**.
+
+### Taux de ré-achat intra-annuel
+
+> Part des clients ayant **≥ 2 commandes génératrices de revenu** sur une même année.
 
 ---
 
 ## 7. Analyse exploratoire (EDA Python)
 
-L’EDA vise à comprendre les grandes structures et dynamiques des données avant toute formalisation de KPI.
+L’EDA a permis d’identifier :
 
-Elle inclut notamment :
-- Analyse des **distributions** (prix de vente, coûts, marges unitaires)
-- Analyse des **statuts de lignes** (`item_status`)
-- Analyse des **contributions au chiffre d’affaires réalisé** :
-  - par marque (portefeuille fragmenté, longue traîne),
-  - par catégorie (hiérarchisation claire des familles produit),
-  - par ville (forte dispersion géographique)
-- Analyse de la **saisonnalité mensuelle**
-- Analyse de la **marge** :
-  - marges unitaires,
-  - contribution à la marge par catégorie,
-  - taux de marge par catégorie
-- Comparaison temporelle **2023 vs 2024** :
-  - évolution mensuelle du chiffre d’affaires,
-  - évolution conjointe du CA et du nombre de commandes finalisées
+### 7.1 Structure des prix
+- Distributions **asymétriques** (longue traîne)
+- Catalogue majoritairement **milieu de gamme**
+- Une part réduite de produits premium avec un impact potentiel disproportionné sur le CA/marge
 
-L’EDA se limite volontairement à des **constats descriptifs** ;  
-les mécanismes explicatifs sont approfondis dans la phase KPI.
+### 7.2 Structure du portefeuille
+- **Longue traîne** marques
+- **Longue traîne** géographique
+- Hiérarchisation claire des **catégories** contributrices
 
----
+### 7.3 Saisonniété
+- Pics en fin d’année (profil saisonnier structurel)
+- Comparaison mois par mois permettant d’observer une hausse en 2024
 
-## 8. KPI calculés en Python
+### 7.4 Croissance 2023 vs 2024
+- Hausse marquée du **CA**
+- Progression conjointe du **volume de commandes** `Complete`
+- **Panier moyen** relativement stable
 
-Les KPI sont calculés sur les **ventes réalisées** (`item_status = Complete`) :
-
-- **Chiffre d’affaires réalisé**
-- **Marge brute** : Σ(`sale_price` − `cost`)
-- **Taux de marge brute** : Marge brute / CA réalisé
-- **Panier moyen** :
-  - CA réalisé / nombre de commandes distinctes génératrices de revenu
-  - une commande est comptabilisée dès lors qu’elle contient ≥ 1 ligne `Complete`
-- **Taux de retour** :
-  - proportion de lignes `Returned` parmi (`Returned` + `Complete`)
-  - calcul au grain ligne de commande
-- **Taux de ré-achat intra-annuel** :
-  - part des clients ayant ≥ 2 commandes génératrices de revenu sur une même année
+**Conclusion EDA** : la croissance 2024 est principalement portée par le **volume**, plus que par une hausse structurelle de l’AOV.
 
 ---
 
-## 9. Source de vérité & validation BigQuery
+## 8. KPI finaux (BigQuery — source de vérité)
 
-Des écarts ont été observés entre :
-- les KPI calculés à partir du **CSV pédagogique**,
-- et ceux recalculés à partir d’un **export reconstruit depuis BigQuery**.
+### KPI 2023
+- **CA réalisé** : 7 065 €  
+- **Marge brute** : 3 647 €  
+- **Panier moyen** : 85,13 €  
+- **Taux de retour** : 25,30 %  
+- **Taux de ré-achat** : 3,75 %
 
-Ces écarts s’expliquent par :
-- des différences de périmètre effectif,
-- la logique de jointures,
-- les filtres temporels appliqués au grain ligne.
+### KPI 2024
+- **CA réalisé** : 14 137 €  
+- **Marge brute** : 7 409 €  
+- **Panier moyen** : 86,73 €  
+- **Taux de retour** : 24,69 %  
+- **Taux de ré-achat** : 2,52 %
 
-👉 Les KPI **recalculés depuis BigQuery** sont retenus comme **référence finale** :
-- alignement avec les requêtes SQL,
-- cohérence avec le dashboard Power BI,
-- meilleure robustesse méthodologique.
+### Lecture stratégique
+- **CA** : +100 %  
+- **Marge** : +103 %  
+- **Panier moyen** : +1,9 %  
+- **Taux de retour** : −0,6 pt  
+- **Ré-achat** : −1,23 pt  
+
+> La croissance est donc majoritairement portée par l’augmentation du **volume de commandes finalisées**.
 
 ---
 
-## 10. Conclusion
+## 9. Dashboard Power BI
 
-L’analyse met en évidence une **croissance marquée entre 2023 et 2024** sur le périmètre étudié, accompagnée d’une évolution des volumes de commandes finalisées.  
-Elle souligne également l’importance du **mix produit**, des **retours** et de la **marge** dans le pilotage de la performance e-commerce.
+Fichier : `powerbi/dashboard_thelook.pbix`  
+Source : export **BigQuery reconstruit**
 
-Les règles métier et les indicateurs ont été sécurisés par une validation croisée **Python / SQL BigQuery**, et les KPI issus de BigQuery constituent la base du reporting Power BI.
+### Structure du dashboard
+
+#### Page 1 — Executive Summary
+- Cartes KPI (CA, marge, panier, retours, ré-achat)
+- **Évolution relative** du CA 2024 vs référence 2023 (index)
+- **Top marques** par CA
+- **Top catégories** par marge
+
+**Objectif** : vision synthétique pour une direction e-commerce.
+
+#### Page 2 — Leviers de performance & zones de vigilance
+- Carte : **CA et marge par ville** (taille = CA)
+- Scatter : **compromis marge vs taux de retour** par catégorie
+- Tableau de détail (CA, marge, taux de marge, taux de retour)
+- Décomposition du panier : **AOV / articles par commande / prix moyen**
+
+**Objectif** : prioriser les actions sur les catégories à fort enjeu économique et à risque retours.
+
+### Décisions de design Power BI
+- Sélecteur d’année (**2023 / 2024**) pour comparer instantanément
+- Visuels orientés décision : **Top N**, carte, scatter, KPI cards
+- Focus sur :
+  - **Volume vs valeur** (AOV décomposé)
+  - **Rentabilité vs retours** (scatter)
+  - **Concentration / longue traîne** (Top marques / catégories)
+
+---
+
+## 10. Principaux enseignements métier
+
+1. **Croissance forte mais “volume-driven”**  
+   La hausse 2024 est principalement expliquée par le **volume de commandes finalisées**, l’AOV restant quasi stable.
+
+2. **Retours significatifs (~25 %)**  
+   Les retours restent un enjeu majeur de rentabilité ; priorité aux catégories à fort enjeu (CA exposé + marge).
+
+3. **Longue traîne structurelle**  
+   Fragmentation forte par marques et villes → nécessité d’optimiser découvrabilité, merchandising et disponibilité catalogue.
+
+4. **Fidélisation limitée**  
+   Ré-achat intra-annuel faible et en baisse → croissance davantage basée sur l’acquisition ; leviers : CRM, cross-sell, recommandations.
+
+---
+
+## 11. Reproduire les résultats (ordre d’exécution)
+
+### 11.1 Python (EDA + KPI)
+- Exécuter le notebook **EDA** (CSV pédagogique)
+- Exécuter le notebook **checks** (comparaisons / recoupes)
+
+### 11.2 SQL BigQuery
+- Exécuter les requêtes KPI (validation)
+- Exécuter la requête d’extraction du sous-périmètre
+- Exporter le résultat en CSV (source reporting)
+
+### 11.3 Power BI
+- Ouvrir le fichier Power BI
+- Vérifier la source de données (CSV issu de BigQuery)
+- Rafraîchir et utiliser les filtres pour comparer 2023 / 2024
+
+---
+
+## 12. Conclusion
+
+Le périmètre **France × Women** montre une **croissance marquée en 2024**.  
+L’analyse met en évidence une dynamique principalement portée par le **volume de commandes finalisées**, avec un panier moyen relativement stable.
+
+Les **retours** restent un enjeu important de rentabilité et doivent être pilotés prioritairement sur les catégories à fort enjeu économique.  
+La **fidélisation** (ré-achat intra-annuel) demeure faible, suggérant un potentiel d’amélioration via CRM et cross-sell.
+
+Les KPI sont sécurisés par une validation croisée **Python / SQL BigQuery**, et le dashboard **Power BI** restitue ces enseignements de manière exploitable pour une direction e-commerce.
