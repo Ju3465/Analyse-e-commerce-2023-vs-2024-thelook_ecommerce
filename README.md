@@ -36,7 +36,11 @@ This project analyzes e-commerce performance data to identify key revenue driver
 ---
 
 ## Dashboard Preview
-*(Add your Power BI screenshots here)*
+![Executive Dashboard](images/dashboard1.png)
+
+![KPI Overview](images/dashboard2.png)
+
+![Profitability vs Return Analysis](images/dashboard3.png)
 
 ---
 
