@@ -1,5 +1,4 @@
-# Projet de fin de formation — DATAGONG  
-## Analyse e-commerce 2023 vs 2024 — TheLook (France × Women)
+# Analyse e-commerce 2023 vs 2024 — TheLook (France × Women)
 
 ---
 
